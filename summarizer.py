@@ -6,6 +6,8 @@ from heapq import nlargest
 import logging
 import re
 import unicodedata
+import os
+import openai
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,6 +20,9 @@ for resource in ['punkt', 'stopwords', 'averaged_perceptron_tagger']:
         logger.info(f"Successfully downloaded {resource}")
     except Exception as e:
         logger.error(f"Failed to download {resource}: {str(e)}")
+
+# Set up OpenAI API key
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def preprocess_text(text):
     # Normalize Unicode characters
@@ -38,11 +43,31 @@ def postprocess_summary(summary):
         summary += '.'
     return summary
 
+def summarize_with_chatgpt(text, max_tokens=150):
+    try:
+        response = openai.Completion.create(
+            engine="text-davinci-002",
+            prompt=f"Please summarize the following text:\n\n{text}\n\nSummary:",
+            max_tokens=max_tokens,
+            n=1,
+            stop=None,
+            temperature=0.7,
+        )
+        return response.choices[0].text.strip()
+    except Exception as e:
+        logger.error(f"Error using ChatGPT API: {str(e)}")
+        return None
+
 def summarize_text(text, num_sentences=3, max_words=150):
     try:
         preprocessed_text = preprocess_text(text)
         
-        # Tokenize the text into sentences and words
+        # Try to use ChatGPT for summarization
+        chatgpt_summary = summarize_with_chatgpt(preprocessed_text, max_tokens=max_words)
+        if chatgpt_summary:
+            return chatgpt_summary
+
+        # If ChatGPT fails, use the existing summarization method
         sentences = sent_tokenize(preprocessed_text)
         words = word_tokenize(preprocessed_text.lower())
 

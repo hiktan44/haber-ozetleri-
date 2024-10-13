@@ -142,7 +142,7 @@ def remove_favorite(index):
 
 # Title
 st.title("RSS Feed Summary Generator")
-st.markdown("This app fetches RSS feeds, summarizes their content, and displays the results.")
+st.markdown("This app fetches RSS feeds, summarizes their content using ChatGPT (when available), and displays the results.")
 
 # Input for new RSS feed URL
 new_feed = st.text_input("Enter a new RSS feed URL:")
