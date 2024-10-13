@@ -1,5 +1,7 @@
 import streamlit as st
 import logging
+import json
+import os
 from rss_utils import fetch_rss_feeds
 from web_scraper import get_website_text_content
 from summarizer import summarize_text
@@ -10,18 +12,30 @@ logger = logging.getLogger(__name__)
 # Set page title and layout
 st.set_page_config(page_title="RSS Feed Summary Generator", layout="wide")
 
+def load_feeds():
+    if os.path.exists('feeds.json'):
+        with open('feeds.json', 'r') as f:
+            return json.load(f)
+    return []
+
+def save_feeds():
+    with open('feeds.json', 'w') as f:
+        json.dump(st.session_state.feeds, f)
+
 # Initialize session state for feeds
 if 'feeds' not in st.session_state:
-    st.session_state.feeds = []
+    st.session_state.feeds = load_feeds()
 
 # Function to add feed
 def add_feed(url):
     if url not in st.session_state.feeds:
         st.session_state.feeds.append(url)
+        save_feeds()
 
 # Function to remove feed
 def remove_feed(url):
     st.session_state.feeds.remove(url)
+    save_feeds()
 
 # Title
 st.title("RSS Feed Summary Generator")
@@ -32,6 +46,7 @@ if st.button("Add Feed"):
     if new_feed:
         add_feed(new_feed)
         st.success(f"Added feed: {new_feed}")
+        save_feeds()
     else:
         st.warning("Please enter a valid URL.")
 
@@ -44,7 +59,8 @@ for index, feed_url in enumerate(st.session_state.feeds):
     with col2:
         if st.button("Remove", key=f"remove_{index}"):
             remove_feed(feed_url)
-            st.experimental_rerun()
+            save_feeds()
+            st.rerun()
 
 # Fetch and summarize feeds
 if st.button("Fetch and Summarize Feeds"):
