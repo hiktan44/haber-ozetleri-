@@ -65,7 +65,10 @@ for index, feed_url in enumerate(st.session_state.feeds):
             st.rerun()
 
 # Add summary length slider
-summary_length = st.slider("Summary Length (number of sentences)", min_value=1, max_value=10, value=3)
+summary_length = st.slider("Summary Length (number of sentences)", min_value=1, max_value=5, value=3)
+
+# Add max words slider
+max_words = st.slider("Maximum Words in Summary", min_value=50, max_value=200, value=150)
 
 # Fetch and summarize feeds
 if st.button("Fetch and Summarize Feeds"):
@@ -98,7 +101,7 @@ if st.button("Fetch and Summarize Feeds"):
                     logger.info(f"Attempting to summarize content from: {item['link']}")
                     content = get_website_text_content(item['link'])
                     if content:
-                        summary = summarize_text(content, num_sentences=summary_length)
+                        summary = summarize_text(content, num_sentences=summary_length, max_words=max_words)
                         if summary.startswith("Error:"):
                             st.error(f"Error during summarization: {summary}")
                         else:

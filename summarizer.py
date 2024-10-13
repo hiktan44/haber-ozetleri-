@@ -38,7 +38,7 @@ def postprocess_summary(summary):
         summary += '.'
     return summary
 
-def summarize_text(text, num_sentences=5):
+def summarize_text(text, num_sentences=3, max_words=150):
     try:
         preprocessed_text = preprocess_text(text)
         
@@ -81,6 +81,11 @@ def summarize_text(text, num_sentences=5):
 
         # Post-process the summary
         final_summary = postprocess_summary(summary)
+
+        # Truncate the summary to max_words
+        words = final_summary.split()
+        if len(words) > max_words:
+            final_summary = ' '.join(words[:max_words]) + '...'
 
         return final_summary
     except LookupError as e:
