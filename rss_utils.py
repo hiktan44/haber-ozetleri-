@@ -2,6 +2,7 @@ import feedparser
 import logging
 from requests.exceptions import RequestException
 import requests
+import chardet
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,12 @@ def fetch_rss_feeds(url):
     try:
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        feed = feedparser.parse(response.content)
+        
+        # Detect encoding
+        encoding = chardet.detect(response.content)['encoding']
+        
+        # Parse feed using detected encoding
+        feed = feedparser.parse(response.content, encoding=encoding)
         
         if feed.bozo:
             logger.error(f"Error parsing RSS feed from {url}: {feed.bozo_exception}")
@@ -36,6 +42,9 @@ def fetch_rss_feeds(url):
         return items
     except RequestException as e:
         logger.error(f"Network error while fetching RSS feed from {url}: {str(e)}")
+        return None
+    except UnicodeDecodeError as e:
+        logger.error(f"Unicode decode error for RSS feed from {url}: {str(e)}")
         return None
     except Exception as e:
         logger.error(f"Unexpected error fetching RSS feed from {url}: {str(e)}")

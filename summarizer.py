@@ -5,13 +5,14 @@ from nltk.probability import FreqDist
 from heapq import nlargest
 import logging
 import re
+import unicodedata
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Download necessary NLTK data
 logger.info("Downloading NLTK data...")
-for resource in ['punkt', 'stopwords', 'averaged_perceptron_tagger', 'punkt_tab']:
+for resource in ['punkt', 'stopwords', 'averaged_perceptron_tagger']:
     try:
         nltk.download(resource, quiet=True)
         logger.info(f"Successfully downloaded {resource}")
@@ -19,10 +20,12 @@ for resource in ['punkt', 'stopwords', 'averaged_perceptron_tagger', 'punkt_tab'
         logger.error(f"Failed to download {resource}: {str(e)}")
 
 def preprocess_text(text):
+    # Normalize Unicode characters
+    text = unicodedata.normalize('NFKC', text)
     # Remove unnecessary whitespace
     text = ' '.join(text.split())
-    # Remove special characters and digits
-    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    # Remove special characters but keep Turkish-specific characters
+    text = re.sub(r'[^\w\s\u00c7\u00e7\u011e\u011f\u0130\u0131\u00d6\u00f6\u015e\u015f\u00dc\u00fc]', '', text)
     return text
 
 def postprocess_summary(summary):
@@ -43,8 +46,8 @@ def summarize_text(text, num_sentences=5):
         sentences = sent_tokenize(preprocessed_text)
         words = word_tokenize(preprocessed_text.lower())
 
-        # Remove stopwords
-        stop_words = set(stopwords.words('english'))
+        # Remove stopwords (English and Turkish)
+        stop_words = set(stopwords.words('english') + stopwords.words('turkish'))
         words = [word for word in words if word not in stop_words]
 
         # Calculate word frequencies
@@ -64,8 +67,9 @@ def summarize_text(text, num_sentences=5):
             if 5 <= len(sentence_words) <= 25:
                 sentence_score *= 1.2
             
-            # Look for key phrases
-            key_phrases = ["in conclusion", "to summarize", "in summary", "finally", "lastly"]
+            # Look for key phrases (English and Turkish)
+            key_phrases = ["in conclusion", "to summarize", "in summary", "finally", "lastly",
+                           "sonuç olarak", "özetlemek gerekirse", "özetle", "son olarak"]
             if any(phrase in sentence.lower() for phrase in key_phrases):
                 sentence_score *= 1.5
             

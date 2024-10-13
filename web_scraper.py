@@ -2,6 +2,7 @@ import trafilatura
 import logging
 from requests.exceptions import RequestException
 import requests
+import chardet
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +19,17 @@ def get_website_text_content(url: str) -> str:
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         
-        downloaded = response.text
+        # Detect encoding
+        encoding = chardet.detect(response.content)['encoding']
+        
+        # Decode content using detected encoding
+        downloaded = response.content.decode(encoding)
+        
         if not downloaded:
             logger.error(f"Failed to download content from {url}")
             return None
         
+        # Extract text using trafilatura
         text = trafilatura.extract(downloaded)
         if text is None:
             logger.error(f"Failed to extract text content from {url}")
@@ -31,6 +38,9 @@ def get_website_text_content(url: str) -> str:
         return text
     except RequestException as e:
         logger.error(f"Network error while fetching content from {url}: {str(e)}")
+        return None
+    except UnicodeDecodeError as e:
+        logger.error(f"Unicode decode error for content from {url}: {str(e)}")
         return None
     except Exception as e:
         logger.error(f"Unexpected error fetching content from {url}: {str(e)}")
