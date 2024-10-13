@@ -145,12 +145,13 @@ if st.button("Fetch and Summarize Feeds"):
                             if st.button("Save as Favorite", key=f"favorite_{item['link']}"):
                                 add_favorite(item['title'], item['link'], summary)
                                 st.success("Summary saved to favorites!")
+                                st.rerun()
                     else:
                         st.error(f"Unable to fetch or summarize content from: {item['link']}. The page might be inaccessible, have restricted content, or require authentication.")
     else:
         st.warning("No feeds available. Please add some RSS feed URLs.")
 
-# Display favorite summaries (moved outside of any conditional statements)
+# Display favorite summaries (always displayed)
 st.subheader("Favorite Summaries")
 logger.debug(f"Current favorites: {st.session_state.favorites}")
 if st.session_state.favorites:
