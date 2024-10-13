@@ -47,14 +47,28 @@ def save_favorites():
         with open(favorites_file, 'w') as f:
             json.dump(st.session_state.favorites, f)
         logger.debug(f"Saved favorites: {st.session_state.favorites}")
-    except IOError:
-        logger.error(f"IOError while writing to {favorites_file}")
+        
+        # Verify if the file was created and updated correctly
+        if os.path.exists(favorites_file):
+            with open(favorites_file, 'r') as f:
+                saved_favorites = json.load(f)
+            if saved_favorites == st.session_state.favorites:
+                logger.debug("Favorites saved successfully and verified.")
+            else:
+                logger.error("Favorites were not saved correctly.")
+        else:
+            logger.error(f"{favorites_file} was not created.")
+    except IOError as e:
+        logger.error(f"IOError while writing to {favorites_file}: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error while saving favorites: {str(e)}")
 
 # Initialize session state for feeds and favorites
 if 'feeds' not in st.session_state:
     st.session_state.feeds = load_feeds()
 if 'favorites' not in st.session_state:
     st.session_state.favorites = load_favorites()
+    logger.debug(f"Initialized favorites in session state: {st.session_state.favorites}")
 
 # Function to add feed
 def add_feed(url):
@@ -78,6 +92,7 @@ def add_favorite(title, link, summary):
     logger.debug(f"Adding favorite: {favorite}")
     st.session_state.favorites.append(favorite)
     save_favorites()
+    logger.debug(f"Current favorites after adding: {st.session_state.favorites}")
 
 # Function to remove favorite
 def remove_favorite(index):
@@ -85,6 +100,7 @@ def remove_favorite(index):
     removed_favorite = st.session_state.favorites.pop(index)
     save_favorites()
     logger.debug(f"Removed favorite: {removed_favorite}")
+    logger.debug(f"Current favorites after removing: {st.session_state.favorites}")
 
 # Title
 st.title("RSS Feed Summary Generator")
