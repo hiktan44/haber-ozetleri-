@@ -1,0 +1,16 @@
+{
+  "name": "rssummarizer",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "expo-cli": "^6.3.10",
+    "react-native-cli": "^2.0.1"
+  }
+}
