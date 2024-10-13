@@ -7,8 +7,21 @@ from web_scraper import get_website_text_content
 from summarizer import summarize_text
 from datetime import datetime
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# Set up file-based logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename='debug.log',
+    filemode='a'
+)
 logger = logging.getLogger(__name__)
+
+# Add console handler to see logs in Streamlit output
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
 # Set page title and layout
 st.set_page_config(page_title="RSS Feed Summary Generator", layout="wide")
@@ -25,7 +38,8 @@ def save_feeds():
 
 def load_favorites():
     favorites_file = 'favorites.json'
-    logger.debug(f"Attempting to load favorites from {favorites_file}")
+    abs_path = os.path.abspath(favorites_file)
+    logger.debug(f"Attempting to load favorites from {abs_path}")
     if os.path.exists(favorites_file):
         try:
             with open(favorites_file, 'r') as f:
@@ -33,19 +47,22 @@ def load_favorites():
                 logger.debug(f"Loaded favorites: {favorites}")
                 return favorites
         except json.JSONDecodeError:
-            logger.error(f"Error decoding JSON from {favorites_file}")
-        except IOError:
-            logger.error(f"IOError while reading {favorites_file}")
+            logger.error(f"Error decoding JSON from {abs_path}")
+        except IOError as e:
+            logger.error(f"IOError while reading {abs_path}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Unexpected error while loading favorites: {str(e)}")
     else:
-        logger.debug(f"{favorites_file} does not exist, returning empty list")
+        logger.debug(f"{abs_path} does not exist, returning empty list")
     return []
 
 def save_favorites():
     favorites_file = 'favorites.json'
-    logger.debug(f"Attempting to save favorites to {favorites_file}")
+    abs_path = os.path.abspath(favorites_file)
+    logger.debug(f"Attempting to save favorites to {abs_path}")
     try:
         with open(favorites_file, 'w') as f:
-            json.dump(st.session_state.favorites, f)
+            json.dump(st.session_state.favorites, f, indent=2)
         logger.debug(f"Saved favorites: {st.session_state.favorites}")
         
         # Verify if the file was created and updated correctly
@@ -57,11 +74,22 @@ def save_favorites():
             else:
                 logger.error("Favorites were not saved correctly.")
         else:
-            logger.error(f"{favorites_file} was not created.")
+            logger.error(f"{abs_path} was not created.")
     except IOError as e:
-        logger.error(f"IOError while writing to {favorites_file}: {str(e)}")
+        logger.error(f"IOError while writing to {abs_path}: {str(e)}")
+    except json.JSONEncodeError as e:
+        logger.error(f"JSON encoding error while saving favorites: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error while saving favorites: {str(e)}")
+
+# Check file permissions
+favorites_file = 'favorites.json'
+abs_path = os.path.abspath(favorites_file)
+logger.debug(f"Checking permissions for {abs_path}")
+if os.path.exists(favorites_file):
+    logger.debug(f"File permissions: {oct(os.stat(favorites_file).st_mode)[-3:]}")
+else:
+    logger.debug(f"File {abs_path} does not exist")
 
 # Initialize session state for feeds and favorites
 if 'feeds' not in st.session_state:
@@ -69,6 +97,9 @@ if 'feeds' not in st.session_state:
 if 'favorites' not in st.session_state:
     st.session_state.favorites = load_favorites()
     logger.debug(f"Initialized favorites in session state: {st.session_state.favorites}")
+
+# Temporary in-memory storage
+global_favorites = []
 
 # Function to add feed
 def add_feed(url):
@@ -91,16 +122,20 @@ def add_favorite(title, link, summary):
     }
     logger.debug(f"Adding favorite: {favorite}")
     st.session_state.favorites.append(favorite)
+    global_favorites.append(favorite)  # Add to in-memory storage
     save_favorites()
     logger.debug(f"Current favorites after adding: {st.session_state.favorites}")
+    logger.debug(f"Current global favorites: {global_favorites}")
 
 # Function to remove favorite
 def remove_favorite(index):
     logger.debug(f"Removing favorite at index {index}")
     removed_favorite = st.session_state.favorites.pop(index)
+    global_favorites.pop(index)  # Remove from in-memory storage
     save_favorites()
     logger.debug(f"Removed favorite: {removed_favorite}")
     logger.debug(f"Current favorites after removing: {st.session_state.favorites}")
+    logger.debug(f"Current global favorites: {global_favorites}")
 
 # Title
 st.title("RSS Feed Summary Generator")
@@ -183,7 +218,8 @@ if st.button("Fetch and Summarize Feeds"):
 
 # Display favorite summaries (always displayed)
 st.subheader("Favorite Summaries")
-logger.debug(f"Current favorites: {st.session_state.favorites}")
+logger.debug(f"Current favorites in session state: {st.session_state.favorites}")
+logger.debug(f"Current global favorites: {global_favorites}")
 if st.session_state.favorites:
     for index, favorite in enumerate(st.session_state.favorites):
         with st.expander(f"**{favorite['title']}** (Saved: {favorite['date_saved']})"):
