@@ -3,6 +3,10 @@ import pandas as pd
 from rss_utils import fetch_rss_feeds
 from web_scraper import get_website_text_content
 from summarizer import summarize_text
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Set page title and layout
 st.set_page_config(page_title="RSS Feed Summary Generator", layout="wide")
@@ -49,12 +53,15 @@ if st.button("Fetch and Summarize Feeds"):
                 st.write(f"Link: {item['link']}")
                 
                 # Fetch and summarize content
+                logger.info(f"Attempting to summarize content from: {item['link']}")
                 content = get_website_text_content(item['link'])
                 if content:
                     summary = summarize_text(content)
+                    logger.info(f"Summary generated: {summary[:100]}...")  # Log first 100 chars of summary
                     st.write("Summary:")
                     st.write(summary)
                 else:
+                    logger.warning(f"Unable to fetch or summarize content from: {item['link']}")
                     st.write("Unable to fetch or summarize content.")
                 
                 st.markdown("---")

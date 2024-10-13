@@ -3,12 +3,19 @@ from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.probability import FreqDist
 from heapq import nlargest
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Download necessary NLTK data
-nltk.download('punkt', quiet=True)
-nltk.download('stopwords', quiet=True)
-nltk.download('averaged_perceptron_tagger', quiet=True)
-nltk.download('punkt_tab', quiet=True)
+logger.info("Downloading NLTK data...")
+for resource in ['punkt', 'stopwords', 'averaged_perceptron_tagger']:
+    try:
+        nltk.download(resource, quiet=True)
+        logger.info(f"Successfully downloaded {resource}")
+    except Exception as e:
+        logger.error(f"Failed to download {resource}: {str(e)}")
 
 def summarize_text(text, num_sentences=3):
     try:
@@ -39,8 +46,8 @@ def summarize_text(text, num_sentences=3):
 
         return summary
     except LookupError as e:
-        print(f"NLTK Error: {str(e)}")
-        return "Error: Unable to summarize due to missing NLTK data. Please try again."
+        logger.error(f"NLTK LookupError: {str(e)}")
+        return f"Error: Unable to summarize due to missing NLTK data. Details: {str(e)}"
     except Exception as e:
-        print(f"Summarization Error: {str(e)}")
-        return "Error: Unable to generate summary. Please try again."
+        logger.error(f"Summarization Error: {str(e)}")
+        return f"Error: Unable to generate summary. Details: {str(e)}"
