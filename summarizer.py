@@ -8,6 +8,7 @@ from heapq import nlargest
 nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
 nltk.download('averaged_perceptron_tagger', quiet=True)
+nltk.download('punkt_tab', quiet=True)
 
 def summarize_text(text, num_sentences=3):
     try:
