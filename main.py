@@ -7,7 +7,7 @@ from web_scraper import get_website_text_content
 from summarizer import summarize_text
 from datetime import datetime
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Set page title and layout
@@ -24,18 +24,31 @@ def save_feeds():
         json.dump(st.session_state.feeds, f)
 
 def load_favorites():
-    if os.path.exists('favorites.json'):
-        with open('favorites.json', 'r') as f:
-            favorites = json.load(f)
-            logger.debug(f"Loaded favorites: {favorites}")
-            return favorites
-    logger.debug("No favorites found, returning empty list")
+    favorites_file = 'favorites.json'
+    logger.debug(f"Attempting to load favorites from {favorites_file}")
+    if os.path.exists(favorites_file):
+        try:
+            with open(favorites_file, 'r') as f:
+                favorites = json.load(f)
+                logger.debug(f"Loaded favorites: {favorites}")
+                return favorites
+        except json.JSONDecodeError:
+            logger.error(f"Error decoding JSON from {favorites_file}")
+        except IOError:
+            logger.error(f"IOError while reading {favorites_file}")
+    else:
+        logger.debug(f"{favorites_file} does not exist, returning empty list")
     return []
 
 def save_favorites():
-    with open('favorites.json', 'w') as f:
-        json.dump(st.session_state.favorites, f)
-    logger.debug(f"Saved favorites: {st.session_state.favorites}")
+    favorites_file = 'favorites.json'
+    logger.debug(f"Attempting to save favorites to {favorites_file}")
+    try:
+        with open(favorites_file, 'w') as f:
+            json.dump(st.session_state.favorites, f)
+        logger.debug(f"Saved favorites: {st.session_state.favorites}")
+    except IOError:
+        logger.error(f"IOError while writing to {favorites_file}")
 
 # Initialize session state for feeds and favorites
 if 'feeds' not in st.session_state:
@@ -62,12 +75,13 @@ def add_favorite(title, link, summary):
         'summary': summary,
         'date_saved': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
+    logger.debug(f"Adding favorite: {favorite}")
     st.session_state.favorites.append(favorite)
     save_favorites()
-    logger.debug(f"Added favorite: {favorite}")
 
 # Function to remove favorite
 def remove_favorite(index):
+    logger.debug(f"Removing favorite at index {index}")
     removed_favorite = st.session_state.favorites.pop(index)
     save_favorites()
     logger.debug(f"Removed favorite: {removed_favorite}")
