@@ -1,6 +1,7 @@
 import feedparser
 import logging
 from requests.exceptions import RequestException
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -8,8 +9,13 @@ def fetch_rss_feeds(url):
     """
     Fetch and parse RSS feed items from the given URL.
     """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
     try:
-        feed = feedparser.parse(url)
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        feed = feedparser.parse(response.content)
         
         if feed.bozo:
             logger.error(f"Error parsing RSS feed from {url}: {feed.bozo_exception}")
@@ -18,9 +24,9 @@ def fetch_rss_feeds(url):
         items = []
         for entry in feed.entries:
             item = {
-                'title': entry.get('title', ''),
+                'title': entry.get('title', 'No title'),
                 'link': entry.get('link', ''),
-                'published': entry.get('published', '')
+                'published': entry.get('published', entry.get('updated', 'No date'))
             }
             items.append(item)
         

@@ -75,7 +75,7 @@ if st.button("Fetch and Summarize Feeds"):
             feed_items = fetch_rss_feeds(feed_url)
             
             if feed_items is None:
-                st.error(f"Failed to fetch RSS feed from {feed_url}. The feed might be inaccessible or have an invalid format. Please check the URL and try again.")
+                st.error(f"Failed to fetch RSS feed from {feed_url}. The feed might be inaccessible, have an invalid format, or require authentication. Please check the URL and try again.")
                 continue
             
             if not feed_items:
@@ -86,7 +86,10 @@ if st.button("Fetch and Summarize Feeds"):
                 try:
                     published_date = datetime.strptime(item['published'], '%a, %d %b %Y %H:%M:%S %z').strftime('%Y-%m-%d %H:%M:%S')
                 except ValueError:
-                    published_date = "Unknown"
+                    try:
+                        published_date = datetime.strptime(item['published'], '%Y-%m-%dT%H:%M:%S%z').strftime('%Y-%m-%d %H:%M:%S')
+                    except ValueError:
+                        published_date = item['published']
                 
                 with st.expander(f"**{item['title']}** (Published: {published_date})"):
                     st.write(f"Link: {item['link']}")
@@ -103,7 +106,7 @@ if st.button("Fetch and Summarize Feeds"):
                             st.write("Summary:")
                             st.write(summary)
                     else:
-                        st.error(f"Unable to fetch or summarize content from: {item['link']}. The page might be inaccessible, have restricted content, or the content structure is not supported.")
+                        st.error(f"Unable to fetch or summarize content from: {item['link']}. The page might be inaccessible, have restricted content, or require authentication.")
     else:
         st.warning("No feeds available. Please add some RSS feed URLs.")
 
