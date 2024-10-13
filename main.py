@@ -24,7 +24,7 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 # Set page title and layout
-st.set_page_config(page_title="RSS Feed Summary Generator", layout="wide")
+st.set_page_config(page_title="RSS Besleme Özet Oluşturucu", layout="wide")
 
 # Global in-memory storage for favorites
 global_favorites = []
@@ -141,50 +141,50 @@ def remove_favorite(index):
     logger.debug(f"Current favorites after removing: {global_favorites}")
 
 # Title
-st.title("RSS Feed Summary Generator")
-st.markdown("This app fetches RSS feeds, summarizes their content using ChatGPT (when available), and displays the results.")
+st.title("RSS Besleme Özet Oluşturucu")
+st.markdown("Bu uygulama, RSS beslemelerini alır, içeriklerini ChatGPT (mevcut olduğunda) kullanarak özetler ve sonuçları görüntüler.")
 
 # Input for new RSS feed URL
-new_feed = st.text_input("Enter a new RSS feed URL:")
-if st.button("Add Feed"):
+new_feed = st.text_input("Yeni bir RSS besleme URL'si girin:")
+if st.button("Besleme Ekle"):
     if new_feed:
         add_feed(new_feed)
-        st.success(f"Added feed: {new_feed}")
+        st.success(f"Besleme eklendi: {new_feed}")
         save_feeds()
     else:
-        st.warning("Please enter a valid URL.")
+        st.warning("Lütfen geçerli bir URL girin.")
 
 # Display and manage existing feeds
-st.subheader("Existing Feeds")
+st.subheader("Mevcut Beslemeler")
 for index, feed_url in enumerate(st.session_state.feeds):
     col1, col2 = st.columns([3, 1])
     with col1:
         st.text(feed_url)
     with col2:
-        if st.button("Remove", key=f"remove_{index}"):
+        if st.button("Kaldır", key=f"remove_{index}"):
             remove_feed(feed_url)
             save_feeds()
             st.rerun()
 
 # Add summary length slider
-summary_length = st.slider("Summary Length (number of sentences)", min_value=1, max_value=5, value=3)
+summary_length = st.slider("Özet Uzunluğu (cümle sayısı)", min_value=1, max_value=5, value=3)
 
 # Add max words slider
-max_words = st.slider("Maximum Words in Summary", min_value=50, max_value=200, value=150)
+max_words = st.slider("Özetteki Maksimum Kelime Sayısı", min_value=50, max_value=200, value=150)
 
 # Fetch and summarize feeds
-if st.button("Fetch and Summarize Feeds"):
+if st.button("Beslemeleri Getir ve Özetle"):
     if st.session_state.feeds:
         for feed_url in st.session_state.feeds:
-            st.subheader(f"Feed: {feed_url}")
+            st.subheader(f"Besleme: {feed_url}")
             feed_items, error_message = fetch_rss_feeds(feed_url)
             
             if error_message:
-                st.error(f"Failed to fetch RSS feed from {feed_url}. {error_message}")
+                st.error(f"{feed_url} adresinden RSS beslemesi alınamadı. {error_message}")
                 continue
             
             if not feed_items:
-                st.warning(f"No items found in the RSS feed from {feed_url}")
+                st.warning(f"{feed_url} adresindeki RSS beslemesinde öğe bulunamadı")
                 continue
             
             for item in feed_items[:10]:  # Process first 10 items
@@ -196,44 +196,44 @@ if st.button("Fetch and Summarize Feeds"):
                     except ValueError:
                         published_date = item['published']
                 
-                with st.expander(f"**{item['title']}** (Published: {published_date})"):
-                    st.write(f"Link: {item['link']}")
+                with st.expander(f"**{item['title']}** (Yayın Tarihi: {published_date})"):
+                    st.write(f"Bağlantı: {item['link']}")
                     
                     # Fetch and summarize content
-                    logger.info(f"Attempting to summarize content from: {item['link']}")
+                    logger.info(f"İçerik özetleniyor: {item['link']}")
                     content = get_website_text_content(item['link'])
                     if content:
                         summary = summarize_text(content, num_sentences=summary_length, max_words=max_words)
-                        if summary.startswith("Error:"):
-                            st.error(f"Error during summarization: {summary}")
+                        if summary.startswith("Hata:"):
+                            st.error(f"Özetleme sırasında hata oluştu: {summary}")
                         else:
-                            logger.info(f"Summary generated: {summary[:100]}...")  # Log first 100 chars of summary
-                            st.write("Summary:")
+                            logger.info(f"Özet oluşturuldu: {summary[:100]}...")  # Log first 100 chars of summary
+                            st.write("Özet:")
                             st.write(summary)
-                            if st.button("Save as Favorite", key=f"favorite_{item['link']}"):
+                            if st.button("Favorilere Kaydet", key=f"favorite_{item['link']}"):
                                 add_favorite(item['title'], item['link'], summary)
-                                st.success("Summary saved to favorites!")
+                                st.success("Özet favorilere kaydedildi!")
                                 st.rerun()
                     else:
-                        st.error(f"Unable to fetch or summarize content from: {item['link']}. The page might be inaccessible, have restricted content, or require authentication.")
+                        st.error(f"İçerik alınamadı veya özetlenemedi: {item['link']}. Sayfa erişilemez olabilir, kısıtlı içerik içerebilir veya kimlik doğrulama gerektirebilir.")
     else:
-        st.warning("No feeds available. Please add some RSS feed URLs.")
+        st.warning("Mevcut besleme yok. Lütfen bazı RSS besleme URL'leri ekleyin.")
 
 # Display favorite summaries (always displayed)
-st.subheader("Favorite Summaries")
-logger.debug(f"Current favorites: {global_favorites}")
+st.subheader("Favori Özetler")
+logger.debug(f"Mevcut favoriler: {global_favorites}")
 if global_favorites:
     for index, favorite in enumerate(global_favorites):
-        with st.expander(f"**{favorite['title']}** (Saved: {favorite['date_saved']})"):
-            st.write(f"Link: {favorite['link']}")
-            st.write("Summary:")
+        with st.expander(f"**{favorite['title']}** (Kaydedilme Tarihi: {favorite['date_saved']})"):
+            st.write(f"Bağlantı: {favorite['link']}")
+            st.write("Özet:")
             st.write(favorite['summary'])
-            if st.button("Remove from Favorites", key=f"remove_favorite_{index}"):
+            if st.button("Favorilerden Kaldır", key=f"remove_favorite_{index}"):
                 remove_favorite(index)
-                st.success("Summary removed from favorites!")
+                st.success("Özet favorilerden kaldırıldı!")
                 st.rerun()
 else:
-    st.info("No favorite summaries saved yet.")
+    st.info("Henüz kaydedilmiş favori özet yok.")
 
 # Add some spacing at the bottom
 st.markdown("<br><br>", unsafe_allow_html=True)

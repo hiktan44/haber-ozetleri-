@@ -24,13 +24,20 @@ for resource in ['punkt', 'stopwords']:
 # Set up OpenAI API key
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Custom Turkish stop words (extend this list as needed)
+turkish_stop_words = set([
+    've', 'veya', 'bir', 'bu', 'şu', 'o', 'de', 'da', 'ki', 'ile', 'için',
+    'ama', 'fakat', 'ancak', 'lakin', 'çünkü', 'zira', 'dolayı', 'nedeniyle',
+    'gibi', 'kadar', 'olarak', 'üzere', 'diye', 'mi', 'mı', 'mu', 'mü'
+])
+
 def preprocess_text(text):
     logger.debug("Preprocessing text...")
     # Normalize Unicode characters
     text = unicodedata.normalize('NFKC', text)
     # Remove unnecessary whitespace
     text = ' '.join(text.split())
-    # Remove special characters but keep Turkish-specific characters
+    # Keep Turkish-specific characters
     text = re.sub(r'[^\w\s\u00c7\u00e7\u011e\u011f\u0130\u0131\u00d6\u00f6\u015e\u015f\u00dc\u00fc]', '', text)
     logger.debug("Text preprocessing completed")
     return text
@@ -41,7 +48,7 @@ def summarize_with_chatgpt(text, num_sentences, max_words):
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": f"You are a summarization assistant. Summarize the following text in {num_sentences} sentences, not exceeding {max_words} words. Ensure the summary is coherent and doesn't cut off mid-sentence."},
+                {"role": "system", "content": f"Sen bir özetleme asistanısın. Aşağıdaki metni Türkçe olarak {num_sentences} cümle ile özetle, {max_words} kelimeyi geçmeyecek şekilde. Özetin tutarlı olmasını ve cümlelerin yarıda kesilmemesini sağla."},
                 {"role": "user", "content": text}
             ],
             max_tokens=max_words * 2,  # Allowing some buffer for the model
@@ -70,8 +77,8 @@ def fallback_summarize(text, num_sentences, max_words):
         sentences = sent_tokenize(text)
         words = word_tokenize(text.lower())
 
-        # Remove stopwords (English and Turkish)
-        stop_words = set(stopwords.words('english') + stopwords.words('turkish'))
+        # Remove stopwords (Turkish)
+        stop_words = set(stopwords.words('turkish')).union(turkish_stop_words)
         words = [word for word in words if word not in stop_words]
 
         # Calculate word frequencies
@@ -101,7 +108,7 @@ def fallback_summarize(text, num_sentences, max_words):
         return final_summary
     except Exception as e:
         logger.error(f"Fallback summarization error: {str(e)}")
-        return f"Error: Unable to generate summary. Details: {str(e)}"
+        return f"Hata: Özet oluşturulamadı. Detaylar: {str(e)}"
 
 def summarize_text(text, num_sentences=3, max_words=150):
     logger.info(f"Summarizing text with {num_sentences} sentences and max {max_words} words...")
@@ -120,4 +127,4 @@ def summarize_text(text, num_sentences=3, max_words=150):
 
     except Exception as e:
         logger.error(f"Summarization Error: {str(e)}")
-        return f"Error: Unable to generate summary. Details: {str(e)}"
+        return f"Hata: Özet oluşturulamadı. Detaylar: {str(e)}"
