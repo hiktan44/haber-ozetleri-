@@ -26,6 +26,9 @@ logger.addHandler(console_handler)
 # Set page title and layout
 st.set_page_config(page_title="RSS Feed Summary Generator", layout="wide")
 
+# Global in-memory storage for favorites
+global_favorites = []
+
 def load_feeds():
     if os.path.exists('feeds.json'):
         with open('feeds.json', 'r') as f:
@@ -44,7 +47,7 @@ def load_favorites():
         try:
             with open(favorites_file, 'r') as f:
                 favorites = json.load(f)
-                logger.debug(f"Loaded favorites: {favorites}")
+                logger.debug(f"Loaded favorites from file: {favorites}")
                 return favorites
         except json.JSONDecodeError:
             logger.error(f"Error decoding JSON from {abs_path}")
@@ -62,14 +65,14 @@ def save_favorites():
     logger.debug(f"Attempting to save favorites to {abs_path}")
     try:
         with open(favorites_file, 'w') as f:
-            json.dump(st.session_state.favorites, f, indent=2)
-        logger.debug(f"Saved favorites: {st.session_state.favorites}")
+            json.dump(global_favorites, f, indent=2)
+        logger.debug(f"Saved favorites to file: {global_favorites}")
         
         # Verify if the file was created and updated correctly
         if os.path.exists(favorites_file):
             with open(favorites_file, 'r') as f:
                 saved_favorites = json.load(f)
-            if saved_favorites == st.session_state.favorites:
+            if saved_favorites == global_favorites:
                 logger.debug("Favorites saved successfully and verified.")
             else:
                 logger.error("Favorites were not saved correctly.")
@@ -87,19 +90,23 @@ favorites_file = 'favorites.json'
 abs_path = os.path.abspath(favorites_file)
 logger.debug(f"Checking permissions for {abs_path}")
 if os.path.exists(favorites_file):
-    logger.debug(f"File permissions: {oct(os.stat(favorites_file).st_mode)[-3:]}")
+    permissions = oct(os.stat(favorites_file).st_mode)[-3:]
+    logger.debug(f"File permissions: {permissions}")
+    if permissions != '666':
+        try:
+            os.chmod(favorites_file, 0o666)
+            logger.debug(f"Updated file permissions to 666")
+        except Exception as e:
+            logger.error(f"Failed to update file permissions: {str(e)}")
 else:
     logger.debug(f"File {abs_path} does not exist")
 
 # Initialize session state for feeds and favorites
 if 'feeds' not in st.session_state:
     st.session_state.feeds = load_feeds()
-if 'favorites' not in st.session_state:
-    st.session_state.favorites = load_favorites()
-    logger.debug(f"Initialized favorites in session state: {st.session_state.favorites}")
 
-# Temporary in-memory storage
-global_favorites = []
+# Load favorites into global variable
+global_favorites = load_favorites()
 
 # Function to add feed
 def add_feed(url):
@@ -121,21 +128,17 @@ def add_favorite(title, link, summary):
         'date_saved': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
     logger.debug(f"Adding favorite: {favorite}")
-    st.session_state.favorites.append(favorite)
-    global_favorites.append(favorite)  # Add to in-memory storage
+    global_favorites.append(favorite)
     save_favorites()
-    logger.debug(f"Current favorites after adding: {st.session_state.favorites}")
-    logger.debug(f"Current global favorites: {global_favorites}")
+    logger.debug(f"Current favorites after adding: {global_favorites}")
 
 # Function to remove favorite
 def remove_favorite(index):
     logger.debug(f"Removing favorite at index {index}")
-    removed_favorite = st.session_state.favorites.pop(index)
-    global_favorites.pop(index)  # Remove from in-memory storage
+    removed_favorite = global_favorites.pop(index)
     save_favorites()
     logger.debug(f"Removed favorite: {removed_favorite}")
-    logger.debug(f"Current favorites after removing: {st.session_state.favorites}")
-    logger.debug(f"Current global favorites: {global_favorites}")
+    logger.debug(f"Current favorites after removing: {global_favorites}")
 
 # Title
 st.title("RSS Feed Summary Generator")
@@ -218,10 +221,9 @@ if st.button("Fetch and Summarize Feeds"):
 
 # Display favorite summaries (always displayed)
 st.subheader("Favorite Summaries")
-logger.debug(f"Current favorites in session state: {st.session_state.favorites}")
-logger.debug(f"Current global favorites: {global_favorites}")
-if st.session_state.favorites:
-    for index, favorite in enumerate(st.session_state.favorites):
+logger.debug(f"Current favorites: {global_favorites}")
+if global_favorites:
+    for index, favorite in enumerate(global_favorites):
         with st.expander(f"**{favorite['title']}** (Saved: {favorite['date_saved']})"):
             st.write(f"Link: {favorite['link']}")
             st.write("Summary:")
