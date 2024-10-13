@@ -7,7 +7,7 @@ from web_scraper import get_website_text_content
 from summarizer import summarize_text
 from datetime import datetime
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Set page title and layout
@@ -26,12 +26,16 @@ def save_feeds():
 def load_favorites():
     if os.path.exists('favorites.json'):
         with open('favorites.json', 'r') as f:
-            return json.load(f)
+            favorites = json.load(f)
+            logger.debug(f"Loaded favorites: {favorites}")
+            return favorites
+    logger.debug("No favorites found, returning empty list")
     return []
 
 def save_favorites():
     with open('favorites.json', 'w') as f:
         json.dump(st.session_state.favorites, f)
+    logger.debug(f"Saved favorites: {st.session_state.favorites}")
 
 # Initialize session state for feeds and favorites
 if 'feeds' not in st.session_state:
@@ -60,11 +64,13 @@ def add_favorite(title, link, summary):
     }
     st.session_state.favorites.append(favorite)
     save_favorites()
+    logger.debug(f"Added favorite: {favorite}")
 
 # Function to remove favorite
 def remove_favorite(index):
-    del st.session_state.favorites[index]
+    removed_favorite = st.session_state.favorites.pop(index)
     save_favorites()
+    logger.debug(f"Removed favorite: {removed_favorite}")
 
 # Title
 st.title("RSS Feed Summary Generator")
@@ -144,8 +150,9 @@ if st.button("Fetch and Summarize Feeds"):
     else:
         st.warning("No feeds available. Please add some RSS feed URLs.")
 
-# Display favorite summaries
+# Display favorite summaries (moved outside of any conditional statements)
 st.subheader("Favorite Summaries")
+logger.debug(f"Current favorites: {st.session_state.favorites}")
 if st.session_state.favorites:
     for index, favorite in enumerate(st.session_state.favorites):
         with st.expander(f"**{favorite['title']}** (Saved: {favorite['date_saved']})"):
