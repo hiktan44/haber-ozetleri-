@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 # Download necessary NLTK data
 logger.info("Downloading NLTK data...")
-for resource in ['punkt', 'stopwords', 'averaged_perceptron_tagger']:
+for resource in ['punkt', 'stopwords', 'averaged_perceptron_tagger', 'punkt_tab']:
     try:
         nltk.download(resource, quiet=True)
         logger.info(f"Successfully downloaded {resource}")
