@@ -72,10 +72,10 @@ if st.button("Fetch and Summarize Feeds"):
     if st.session_state.feeds:
         for feed_url in st.session_state.feeds:
             st.subheader(f"Feed: {feed_url}")
-            feed_items = fetch_rss_feeds(feed_url)
+            feed_items, error_message = fetch_rss_feeds(feed_url)
             
-            if feed_items is None:
-                st.error(f"Failed to fetch RSS feed from {feed_url}. The feed might be inaccessible, have an invalid format, or require authentication. Please check the URL and try again.")
+            if error_message:
+                st.error(f"Failed to fetch RSS feed from {feed_url}. {error_message}")
                 continue
             
             if not feed_items:
