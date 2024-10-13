@@ -75,7 +75,7 @@ if st.button("Fetch and Summarize Feeds"):
             feed_items = fetch_rss_feeds(feed_url)
             
             if feed_items is None:
-                st.error(f"Failed to fetch RSS feed from {feed_url}. Please check the URL and try again.")
+                st.error(f"Failed to fetch RSS feed from {feed_url}. The feed might be inaccessible or have an invalid format. Please check the URL and try again.")
                 continue
             
             if not feed_items:
@@ -97,13 +97,13 @@ if st.button("Fetch and Summarize Feeds"):
                     if content:
                         summary = summarize_text(content, num_sentences=summary_length)
                         if summary.startswith("Error:"):
-                            st.error(summary)
+                            st.error(f"Error during summarization: {summary}")
                         else:
                             logger.info(f"Summary generated: {summary[:100]}...")  # Log first 100 chars of summary
                             st.write("Summary:")
                             st.write(summary)
                     else:
-                        st.error(f"Unable to fetch or summarize content from: {item['link']}. The page might be inaccessible or have restricted content.")
+                        st.error(f"Unable to fetch or summarize content from: {item['link']}. The page might be inaccessible, have restricted content, or the content structure is not supported.")
     else:
         st.warning("No feeds available. Please add some RSS feed URLs.")
 
