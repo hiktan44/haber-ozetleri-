@@ -967,7 +967,7 @@ requires-dist = [
     { name = "chardet", specifier = ">=5.2.0" },
     { name = "feedparser", specifier = ">=6.0.11" },
     { name = "nltk", specifier = ">=3.9.1" },
-    { name = "openai", specifier = ">=1.51.2" },
+    { name = "openai", specifier = ">=1.0.0" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "streamlit", specifier = ">=1.39.0" },
     { name = "trafilatura", specifier = ">=1.12.2" },
