@@ -23,9 +23,21 @@ def save_feeds():
     with open('feeds.json', 'w') as f:
         json.dump(st.session_state.feeds, f)
 
-# Initialize session state for feeds
+def load_favorites():
+    if os.path.exists('favorites.json'):
+        with open('favorites.json', 'r') as f:
+            return json.load(f)
+    return []
+
+def save_favorites():
+    with open('favorites.json', 'w') as f:
+        json.dump(st.session_state.favorites, f)
+
+# Initialize session state for feeds and favorites
 if 'feeds' not in st.session_state:
     st.session_state.feeds = load_feeds()
+if 'favorites' not in st.session_state:
+    st.session_state.favorites = load_favorites()
 
 # Function to add feed
 def add_feed(url):
@@ -37,6 +49,22 @@ def add_feed(url):
 def remove_feed(url):
     st.session_state.feeds.remove(url)
     save_feeds()
+
+# Function to add favorite
+def add_favorite(title, link, summary):
+    favorite = {
+        'title': title,
+        'link': link,
+        'summary': summary,
+        'date_saved': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    st.session_state.favorites.append(favorite)
+    save_favorites()
+
+# Function to remove favorite
+def remove_favorite(index):
+    del st.session_state.favorites[index]
+    save_favorites()
 
 # Title
 st.title("RSS Feed Summary Generator")
@@ -108,10 +136,28 @@ if st.button("Fetch and Summarize Feeds"):
                             logger.info(f"Summary generated: {summary[:100]}...")  # Log first 100 chars of summary
                             st.write("Summary:")
                             st.write(summary)
+                            if st.button("Save as Favorite", key=f"favorite_{item['link']}"):
+                                add_favorite(item['title'], item['link'], summary)
+                                st.success("Summary saved to favorites!")
                     else:
                         st.error(f"Unable to fetch or summarize content from: {item['link']}. The page might be inaccessible, have restricted content, or require authentication.")
     else:
         st.warning("No feeds available. Please add some RSS feed URLs.")
+
+# Display favorite summaries
+st.subheader("Favorite Summaries")
+if st.session_state.favorites:
+    for index, favorite in enumerate(st.session_state.favorites):
+        with st.expander(f"**{favorite['title']}** (Saved: {favorite['date_saved']})"):
+            st.write(f"Link: {favorite['link']}")
+            st.write("Summary:")
+            st.write(favorite['summary'])
+            if st.button("Remove from Favorites", key=f"remove_favorite_{index}"):
+                remove_favorite(index)
+                st.success("Summary removed from favorites!")
+                st.rerun()
+else:
+    st.info("No favorite summaries saved yet.")
 
 # Add some spacing at the bottom
 st.markdown("<br><br>", unsafe_allow_html=True)
