@@ -33,43 +33,38 @@ def preprocess_text(text):
     text = re.sub(r'[^\w\s\u00c7\u00e7\u011e\u011f\u0130\u0131\u00d6\u00f6\u015e\u015f\u00dc\u00fc]', '', text)
     return text
 
-def postprocess_summary(summary):
-    # Join sentences
-    summary = ' '.join(summary)
-    # Capitalize first letter
-    summary = summary[0].upper() + summary[1:]
-    # Ensure the summary ends with a period
-    if not summary.endswith('.'):
-        summary += '.'
-    return summary
-
-def summarize_with_chatgpt(text, max_tokens=150):
+def summarize_with_chatgpt(text, num_sentences, max_words):
     try:
-        response = openai.Completion.create(
-            engine="text-davinci-002",
-            prompt=f"Please summarize the following text:\n\n{text}\n\nSummary:",
-            max_tokens=max_tokens,
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": f"You are a summarization assistant. Summarize the following text in {num_sentences} sentences, not exceeding {max_words} words. Ensure the summary is coherent and doesn't cut off mid-sentence."},
+                {"role": "user", "content": text}
+            ],
+            max_tokens=max_words * 2,  # Allowing some buffer for the model
             n=1,
             stop=None,
             temperature=0.7,
         )
-        return response.choices[0].text.strip()
+        summary = response.choices[0].message['content'].strip()
+        
+        # Ensure we don't exceed the max_words limit
+        words = summary.split()
+        if len(words) > max_words:
+            summary = ' '.join(words[:max_words])
+            # Ensure we don't cut off mid-sentence
+            if not summary.endswith('.'):
+                summary = ' '.join(summary.split('.')[:-1]) + '.'
+        
+        return summary
     except Exception as e:
         logger.error(f"Error using ChatGPT API: {str(e)}")
         return None
 
-def summarize_text(text, num_sentences=3, max_words=150):
+def fallback_summarize(text, num_sentences, max_words):
     try:
-        preprocessed_text = preprocess_text(text)
-        
-        # Try to use ChatGPT for summarization
-        chatgpt_summary = summarize_with_chatgpt(preprocessed_text, max_tokens=max_words)
-        if chatgpt_summary:
-            return chatgpt_summary
-
-        # If ChatGPT fails, use the existing summarization method
-        sentences = sent_tokenize(preprocessed_text)
-        words = word_tokenize(preprocessed_text.lower())
+        sentences = sent_tokenize(text)
+        words = word_tokenize(text.lower())
 
         # Remove stopwords (English and Turkish)
         stop_words = set(stopwords.words('english') + stopwords.words('turkish'))
@@ -78,44 +73,44 @@ def summarize_text(text, num_sentences=3, max_words=150):
         # Calculate word frequencies
         freq = FreqDist(words)
 
-        # Score sentences based on word frequencies, position, and length
+        # Score sentences based on word frequencies
         sentence_scores = {}
         for i, sentence in enumerate(sentences):
             sentence_words = word_tokenize(sentence.lower())
             sentence_score = sum(freq[word] for word in sentence_words if word in freq)
-            
-            # Consider sentence position
-            if i < len(sentences) * 0.2 or i > len(sentences) * 0.8:
-                sentence_score *= 1.5
-            
-            # Consider sentence length
-            if 5 <= len(sentence_words) <= 25:
-                sentence_score *= 1.2
-            
-            # Look for key phrases (English and Turkish)
-            key_phrases = ["in conclusion", "to summarize", "in summary", "finally", "lastly",
-                           "sonuç olarak", "özetlemek gerekirse", "özetle", "son olarak"]
-            if any(phrase in sentence.lower() for phrase in key_phrases):
-                sentence_score *= 1.5
-            
             sentence_scores[i] = sentence_score
 
         # Get the top N sentences with highest scores
         summary_sentences = nlargest(min(num_sentences, len(sentences)), sentence_scores, key=sentence_scores.get)
         summary = [sentences[i] for i in sorted(summary_sentences)]
 
-        # Post-process the summary
-        final_summary = postprocess_summary(summary)
-
-        # Truncate the summary to max_words
+        # Join sentences and truncate to max_words
+        final_summary = ' '.join(summary)
         words = final_summary.split()
         if len(words) > max_words:
-            final_summary = ' '.join(words[:max_words]) + '...'
+            final_summary = ' '.join(words[:max_words])
+            # Ensure we don't cut off mid-sentence
+            if not final_summary.endswith('.'):
+                final_summary = ' '.join(final_summary.split('.')[:-1]) + '.'
 
         return final_summary
-    except LookupError as e:
-        logger.error(f"NLTK LookupError: {str(e)}")
-        return f"Error: Unable to summarize due to missing NLTK data. Details: {str(e)}"
+    except Exception as e:
+        logger.error(f"Fallback summarization error: {str(e)}")
+        return f"Error: Unable to generate summary. Details: {str(e)}"
+
+def summarize_text(text, num_sentences=3, max_words=150):
+    try:
+        preprocessed_text = preprocess_text(text)
+        
+        # Try to use ChatGPT for summarization
+        chatgpt_summary = summarize_with_chatgpt(preprocessed_text, num_sentences, max_words)
+        if chatgpt_summary:
+            return chatgpt_summary
+
+        # If ChatGPT fails, use the fallback summarization method
+        logger.info("ChatGPT summarization failed. Using fallback method.")
+        return fallback_summarize(preprocessed_text, num_sentences, max_words)
+
     except Exception as e:
         logger.error(f"Summarization Error: {str(e)}")
         return f"Error: Unable to generate summary. Details: {str(e)}"

@@ -80,7 +80,7 @@ def save_favorites():
             logger.error(f"{abs_path} was not created.")
     except IOError as e:
         logger.error(f"IOError while writing to {abs_path}: {str(e)}")
-    except json.JSONEncodeError as e:
+    except json.JSONDecodeError as e:
         logger.error(f"JSON encoding error while saving favorites: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error while saving favorites: {str(e)}")
