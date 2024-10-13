@@ -89,7 +89,7 @@ def remove_favorite(index):
 st.title("RSS Besleme Özet Oluşturucu")
 st.markdown("Bu uygulama, RSS beslemelerini alır, içeriklerini ChatGPT kullanarak özetler ve sonuçları görüntüler.")
 
-# Create two columns
+# Create two columns for the main layout
 col1, col2 = st.columns(2)
 
 with col1:
@@ -139,43 +139,44 @@ with col1:
                     continue
                 
                 for item in feed_items[:10]:  # Process first 10 items
-                    try:
-                        published_date = datetime.strptime(item['published'], '%a, %d %b %Y %H:%M:%S %z').strftime('%Y-%m-%d %H:%M:%S')
-                    except ValueError:
-                        try:
-                            published_date = datetime.strptime(item['published'], '%Y-%m-%dT%H:%M:%S%z').strftime('%Y-%m-%d %H:%M:%S')
-                        except ValueError:
-                            published_date = item['published']
-                    
-                    st.write(f"**{item['title']}** (Yayın Tarihi: {published_date})")
-                    st.write(f"Bağlantı: {item['link']}")
-                    
-                    # Move the content fetching and summarization to the right column
-                    with col2:
-                        # Fetch and summarize content
-                        logger.info(f"İçerik özetleniyor: {item['link']}")
-                        content = get_website_text_content(item['link'])
-                        if content:
-                            summary = summarize_text(content, num_sentences=summary_length, max_words=max_words)
-                            if summary.startswith("Hata:"):
-                                st.error(f"Özetleme sırasında hata oluştu: {summary}")
+                    with st.container():
+                        item_col1, item_col2 = st.columns(2)
+                        with item_col1:
+                            try:
+                                published_date = datetime.strptime(item['published'], '%a, %d %b %Y %H:%M:%S %z').strftime('%Y-%m-%d %H:%M:%S')
+                            except ValueError:
+                                try:
+                                    published_date = datetime.strptime(item['published'], '%Y-%m-%dT%H:%M:%S%z').strftime('%Y-%m-%d %H:%M:%S')
+                                except ValueError:
+                                    published_date = item['published']
+                            
+                            st.subheader(item['title'])
+                            st.write(f"Yayın Tarihi: {published_date}")
+                            st.write(f"Bağlantı: {item['link']}")
+                        
+                        with item_col2:
+                            # Fetch and summarize content
+                            logger.info(f"İçerik özetleniyor: {item['link']}")
+                            content = get_website_text_content(item['link'])
+                            if content:
+                                summary = summarize_text(content, num_sentences=summary_length, max_words=max_words)
+                                if summary.startswith("Hata:"):
+                                    st.error(f"Özetleme sırasında hata oluştu: {summary}")
+                                else:
+                                    logger.info(f"Özet oluşturuldu: {summary[:100]}...")  # Log first 100 chars of summary
+                                    st.write("Özet:")
+                                    st.write(summary)
+                                    if st.button("Favorilere Kaydet", key=f"favorite_{item['link']}"):
+                                        add_favorite(item['title'], item['link'], summary)
+                                        st.success("Özet favorilere kaydedildi!")
+                                        st.rerun()
                             else:
-                                logger.info(f"Özet oluşturuldu: {summary[:100]}...")  # Log first 100 chars of summary
-                                st.write("Özet:")
-                                st.write(summary)
-                                if st.button("Favorilere Kaydet", key=f"favorite_{item['link']}"):
-                                    add_favorite(item['title'], item['link'], summary)
-                                    st.success("Özet favorilere kaydedildi!")
-                                    st.rerun()
-                        else:
-                            st.error(f"İçerik alınamadı veya özetlenemedi: {item['link']}. Sayfa erişilemez olabilir, kısıtlı içerik içerebilir veya kimlik doğrulama gerektirebilir.")
+                                st.error(f"İçerik alınamadı veya özetlenemedi: {item['link']}. Sayfa erişilemez olabilir, kısıtlı içerik içerebilir veya kimlik doğrulama gerektirebilir.")
+                    st.markdown("---")  # Add a separator between items
         else:
             st.warning("Mevcut besleme yok. Lütfen bazı RSS besleme URL'leri ekleyin.")
 
 with col2:
-    st.subheader("Özetler ve Favoriler")
-    
-    # Display favorite summaries (always displayed)
     st.subheader("Favori Özetler")
     if global_favorites:
         for index, favorite in enumerate(global_favorites):
