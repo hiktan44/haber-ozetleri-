@@ -5,6 +5,7 @@ import os
 from rss_utils import fetch_rss_feeds
 from web_scraper import get_website_text_content
 from summarizer import summarize_text
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ def remove_feed(url):
 
 # Title
 st.title("RSS Feed Summary Generator")
+st.markdown("This app fetches RSS feeds, summarizes their content, and displays the results.")
 
 # Input for new RSS feed URL
 new_feed = st.text_input("Enter a new RSS feed URL:")
@@ -62,6 +64,9 @@ for index, feed_url in enumerate(st.session_state.feeds):
             save_feeds()
             st.rerun()
 
+# Add summary length slider
+summary_length = st.slider("Summary Length (number of sentences)", min_value=1, max_value=10, value=3)
+
 # Fetch and summarize feeds
 if st.button("Fetch and Summarize Feeds"):
     if st.session_state.feeds:
@@ -69,21 +74,36 @@ if st.button("Fetch and Summarize Feeds"):
             st.subheader(f"Feed: {feed_url}")
             feed_items = fetch_rss_feeds(feed_url)
             
+            if feed_items is None:
+                st.error(f"Failed to fetch RSS feed from {feed_url}. Please check the URL and try again.")
+                continue
+            
+            if not feed_items:
+                st.warning(f"No items found in the RSS feed from {feed_url}")
+                continue
+            
             for item in feed_items[:10]:  # Process first 10 items
-                with st.expander(f"**{item['title']}**"):
+                try:
+                    published_date = datetime.strptime(item['published'], '%a, %d %b %Y %H:%M:%S %z').strftime('%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    published_date = "Unknown"
+                
+                with st.expander(f"**{item['title']}** (Published: {published_date})"):
                     st.write(f"Link: {item['link']}")
                     
                     # Fetch and summarize content
                     logger.info(f"Attempting to summarize content from: {item['link']}")
                     content = get_website_text_content(item['link'])
                     if content:
-                        summary = summarize_text(content)
-                        logger.info(f"Summary generated: {summary[:100]}...")  # Log first 100 chars of summary
-                        st.write("Summary:")
-                        st.write(summary)
+                        summary = summarize_text(content, num_sentences=summary_length)
+                        if summary.startswith("Error:"):
+                            st.error(summary)
+                        else:
+                            logger.info(f"Summary generated: {summary[:100]}...")  # Log first 100 chars of summary
+                            st.write("Summary:")
+                            st.write(summary)
                     else:
-                        logger.warning(f"Unable to fetch or summarize content from: {item['link']}")
-                        st.write("Unable to fetch or summarize content.")
+                        st.error(f"Unable to fetch or summarize content from: {item['link']}")
     else:
         st.warning("No feeds available. Please add some RSS feed URLs.")
 

@@ -41,7 +41,7 @@ def summarize_text(text, num_sentences=3):
                         sentence_scores[i] += freq[word]
 
         # Get the top N sentences with highest scores
-        summary_sentences = nlargest(num_sentences, sentence_scores, key=sentence_scores.get)
+        summary_sentences = nlargest(min(num_sentences, len(sentences)), sentence_scores, key=sentence_scores.get)
         summary = ' '.join([sentences[i] for i in sorted(summary_sentences)])
 
         return summary

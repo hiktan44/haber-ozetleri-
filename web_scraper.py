@@ -1,4 +1,7 @@
 import trafilatura
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_website_text_content(url: str) -> str:
     """
@@ -8,8 +11,16 @@ def get_website_text_content(url: str) -> str:
     try:
         # Send a request to the website
         downloaded = trafilatura.fetch_url(url)
+        if downloaded is None:
+            logger.error(f"Failed to download content from {url}")
+            return None
+        
         text = trafilatura.extract(downloaded)
+        if text is None:
+            logger.error(f"Failed to extract text content from {url}")
+            return None
+        
         return text
     except Exception as e:
-        print(f"Error fetching content from {url}: {str(e)}")
+        logger.error(f"Error fetching content from {url}: {str(e)}")
         return None
