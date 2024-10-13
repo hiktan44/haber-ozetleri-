@@ -1,5 +1,6 @@
 import trafilatura
 import logging
+from requests.exceptions import RequestException
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,9 @@ def get_website_text_content(url: str) -> str:
             return None
         
         return text
+    except RequestException as e:
+        logger.error(f"Network error while fetching content from {url}: {str(e)}")
+        return None
     except Exception as e:
-        logger.error(f"Error fetching content from {url}: {str(e)}")
+        logger.error(f"Unexpected error fetching content from {url}: {str(e)}")
         return None

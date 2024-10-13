@@ -1,5 +1,6 @@
 import feedparser
 import logging
+from requests.exceptions import RequestException
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,9 @@ def fetch_rss_feeds(url):
             logger.warning(f"No items found in the RSS feed from {url}")
         
         return items
+    except RequestException as e:
+        logger.error(f"Network error while fetching RSS feed from {url}: {str(e)}")
+        return None
     except Exception as e:
-        logger.error(f"Error fetching RSS feed from {url}: {str(e)}")
+        logger.error(f"Unexpected error fetching RSS feed from {url}: {str(e)}")
         return None

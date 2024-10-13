@@ -103,7 +103,7 @@ if st.button("Fetch and Summarize Feeds"):
                             st.write("Summary:")
                             st.write(summary)
                     else:
-                        st.error(f"Unable to fetch or summarize content from: {item['link']}")
+                        st.error(f"Unable to fetch or summarize content from: {item['link']}. The page might be inaccessible or have restricted content.")
     else:
         st.warning("No feeds available. Please add some RSS feed URLs.")
 
